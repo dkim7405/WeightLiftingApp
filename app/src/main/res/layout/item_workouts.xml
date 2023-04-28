@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.appcompat.widget.LinearLayoutCompat xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:background="@color/input_color">
+
+
+    <TextView
+        android:id="@+id/item_textView_workoutName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/light"
+        android:paddingVertical="10dp"
+        android:text="Bench:"
+        android:textColor="@color/white"
+        android:textSize="16sp" />
+
+    <TextView
+        android:id="@+id/item_textView_numberWorkout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="5dp"
+        android:fontFamily="@font/light"
+        android:text="100 lbs"
+        android:textColor="@color/white"
+        android:textSize="16sp" />
+
+    <ImageButton
+        android:id="@+id/item_imageButton_delete"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:backgroundTint="@color/input_color"
+        android:minWidth="10dp"
+        android:minHeight="10dp"
+        android:scaleType="fitCenter"
+        app:srcCompat="@drawable/trash_bin"
+        app:tint="@color/white"
+        tools:ignore="TouchTargetSizeCheck,SpeakableTextPresentCheck" />
+</androidx.appcompat.widget.LinearLayoutCompat>

@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "1072969416591",
+    "project_id": "fir-calendar-app-421ab",
+    "storage_bucket": "fir-calendar-app-421ab.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1072969416591:android:b1a7992856425e292f95fa",
+        "android_client_info": {
+          "package_name": "com.example.app2"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1072969416591-b2rcv3plvfb2pejv8jhp4e9rbhttqcrv.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.app2.buttons",
+            "certificate_hash": "cd37b61e045ca2f40ecd4bdb8a0691fc6a9a0004"
+          }
+        },
+        {
+          "client_id": "1072969416591-2mngp5aqi645dksqgj8rgcntj7rhthcg.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDAKlk4Wxe4q667FGJjXlHByuXgQ_NWggM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1072969416591-2mngp5aqi645dksqgj8rgcntj7rhthcg.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

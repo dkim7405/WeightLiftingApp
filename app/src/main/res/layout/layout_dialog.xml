@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/input_color"
+    android:padding="20dp">
+
+    <EditText
+        android:id="@+id/addWorkoutDialog_editText_workoutName"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:backgroundTint="@color/white"
+        android:ems="10"
+        android:fontFamily="@font/light"
+        android:hint="Workout Name"
+        android:inputType="textPersonName"
+        android:textColorHint="@color/input_hint"
+        android:textColor="@color/white"/>
+
+    <EditText
+        android:id="@+id/addWorkoutDialog_editText_weight"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_below="@id/addWorkoutDialog_editText_workoutName"
+        android:backgroundTint="@color/white"
+        android:ems="10"
+        android:fontFamily="@font/light"
+        android:hint="Weight (lbs)"
+        android:minHeight="48dp"
+        android:textColor="@color/white"
+        android:textColorHint="@color/input_hint"
+        android:inputType="numberDecimal" />
+</RelativeLayout>

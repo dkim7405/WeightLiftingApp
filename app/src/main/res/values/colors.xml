@@ -10,4 +10,8 @@
     
     <color name="background_color">#181B1E</color>
     <color name="input_color">#1F2225</color>
+    <color name="pressed_color">#3D4043</color>
+    <color name="input_hint">#65686B</color>
+    <color name="lighter_input_color">#2E3134</color>
+
 </resources>

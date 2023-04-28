@@ -3,8 +3,20 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="app/src/main/res/drawable/box.xml" value="0.369" />
+        <entry key="app/src/main/res/drawable/box1.xml" value="0.2595" />
+        <entry key="app/src/main/res/drawable/box2.xml" value="0.2595" />
+        <entry key="app/src/main/res/drawable/button.xml" value="0.369" />
+        <entry key="app/src/main/res/drawable/button_not.xml" value="0.37" />
+        <entry key="app/src/main/res/drawable/button_pressed.xml" value="0.369" />
+        <entry key="app/src/main/res/drawable/ic_baseline_search_24.xml" value="0.37" />
+        <entry key="app/src/main/res/drawable/ic_folder_3.xml" value="0.303" />
+        <entry key="app/src/main/res/drawable/input_style.xml" value="0.219" />
         <entry key="app/src/main/res/drawable/top_card.xml" value="0.219" />
-        <entry key="app/src/main/res/layout/activity_main.xml" value="0.4026268115942029" />
+        <entry key="app/src/main/res/layout/activity_logs.xml" value="0.25" />
+        <entry key="app/src/main/res/layout/activity_main.xml" value="0.25" />
+        <entry key="app/src/main/res/layout/item_workouts.xml" value="0.276171875" />
+        <entry key="app/src/main/res/layout/layout_dialog.xml" value="0.1" />
       </map>
     </option>
   </component>
