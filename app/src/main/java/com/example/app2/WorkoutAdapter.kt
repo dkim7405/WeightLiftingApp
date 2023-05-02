@@ -15,7 +15,8 @@ import com.google.firebase.database.FirebaseDatabase
 class WorkoutAdapter(val dataSet: MutableList<ItemWorkout>, dateSelected: String, noteData: String) :
     RecyclerView.Adapter<WorkoutAdapter.ViewHolder>() {
 
-    val databaseReference = FirebaseDatabase.getInstance().getReference("Calendar")
+    val databaseCalendarReference = FirebaseDatabase.getInstance().getReference("Calendar")
+    val databaseWorkoutTypeReference = FirebaseDatabase.getInstance().getReference("Workout Type")
     val onSelectedDate = dateSelected
     /**
      * Provide a reference to the type of views that you are using
@@ -85,28 +86,30 @@ class WorkoutAdapter(val dataSet: MutableList<ItemWorkout>, dateSelected: String
             .setPositiveButton("OK",  DialogInterface.OnClickListener() { dialogInterface, i ->
                 viewHolder.workoutName.text = "${addWorkoutName.text}:"
                 viewHolder.workoutInput.text = "${addWorkoutWeight.text.toString().toFloat()} lbs"
-                updateWorkoutData(position, addWorkoutName.text.toString(), addWorkoutWeight.text.toString().toFloat())
+                updateWorkoutData()
             })
             .setNegativeButton("Cancel", null)
             .create()
         dialog.show()
     }
 
-    fun updateWorkoutData(workoutPosition: Int, workoutName: String, workoutNumber: Float)
+    fun updateWorkoutData()
     {
-        var updateItem = hashMapOf<String, Any>()
-        updateItem.put(workoutName, workoutNumber)
+        var updateCalendarItem = hashMapOf<String, Any>()
+        for(i in dataSet)
+        {
+            updateCalendarItem.put(i.workoutType, i.inputWorkout)
+        }
 
-        databaseReference.child(onSelectedDate)
-            .child("workoutData")
-            .child(workoutPosition.toString())
-            .updateChildren(updateItem)
+        databaseCalendarReference.child(onSelectedDate).child("workoutData").updateChildren(updateCalendarItem)
+        //databaseWorkoutTypeReference.updateChildren()
+
     }
 
     fun deleteWorkoutData(workoutPosition: Int)
     {
-        databaseReference.child(onSelectedDate).child("workoutData").child(workoutPosition.toString()).removeValue()
-        databaseReference.child(onSelectedDate).child("workoutData").setValue(dataSet)
+        databaseCalendarReference.child(onSelectedDate).child("workoutData").child(workoutPosition.toString()).removeValue()
+        databaseCalendarReference.child(onSelectedDate).child("workoutData").setValue(dataSet)
 
     }
 }

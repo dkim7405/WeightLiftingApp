@@ -11,9 +11,12 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.app2.*
 import com.example.app2.databinding.ActivityLogsBinding
+import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import java.text.SimpleDateFormat
+import java.util.*
+import kotlin.collections.HashMap
 
 class LogsActivity : AppCompatActivity() {
 
@@ -30,7 +33,11 @@ class LogsActivity : AppCompatActivity() {
     private lateinit var saveLogData: DataLog
     private var retrievedNoteData : String = ""
     private var retrievedWorkoutData : MutableList<ItemWorkout> = mutableListOf()
+
     private lateinit var stringDateSelected: String
+    private lateinit var todayDate: Date
+    private lateinit var dateSelected: Date
+
 
     private lateinit var workoutList: MutableList<ItemWorkout>
     private lateinit var workoutTypeList: MutableList<String>
@@ -59,66 +66,73 @@ class LogsActivity : AppCompatActivity() {
             ItemWorkout("Squat", 0.0f)
         )
 
+        todayDate = Calendar.getInstance().time
+
         var calendarFormat = SimpleDateFormat("yyyy-M-d")
         stringDateSelected = calendarFormat.format(binding.logsCalendarViewCalendar.date)
 
-        retrieveData()
+        binding.logsRecyclerViewWorkoutList.layoutManager = LinearLayoutManager(this)
+        adapter = WorkoutAdapter(workoutList, stringDateSelected, binding.logsEditTextNote.text.toString())
+        binding.logsRecyclerViewWorkoutList.adapter = adapter
 
+        databaseCalendarReference.child(stringDateSelected).get().addOnSuccessListener {
+            if (it.exists()) {
+                retrieveData(it)
 
+                workoutList = retrievedWorkoutData
+                binding.logsEditTextNote.setText(retrievedNoteData)
 
+                adapter = WorkoutAdapter(workoutList, stringDateSelected, binding.logsEditTextNote.text.toString())
+                binding.logsRecyclerViewWorkoutList.adapter = adapter
+            }
 
-//        binding.logsRecyclerViewWorkoutList.layoutManager = LinearLayoutManager(this)
-//        adapter = WorkoutAdapter(defalutWorkoutList, stringDateSelected, binding.logsEditTextNote.text.toString())
-//        binding.logsRecyclerViewWorkoutList.adapter = adapter
-//
-//        databaseReference.child(stringDateSelected).get().addOnSuccessListener {
-//            if(it.exists())
-//            {
-//                var retrievedWorkoutList = it.child("workoutData").value as List<HashMap<String, Any?>>
-//                val currentWorkoutList = mutableListOf<ItemWorkout>()
-//
-//                for(workout in retrievedWorkoutList) {
-//                    val item = ItemWorkout("", 0f)
-//                    item.setData(workout)
-//                    currentWorkoutList.add(item)
-//                }
-//
-//                defalutWorkoutList = currentWorkoutList
-//
-//                adapter = WorkoutAdapter(currentWorkoutList, stringDateSelected, binding.logsEditTextNote.text.toString())
-//                binding.logsRecyclerViewWorkoutList.adapter = adapter
-//                binding.logsEditTextNote.setText(it.child("noteData").value.toString())
-//            }
-//        }
-//
-//        binding.logsCalendarViewCalendar.setOnDateChangeListener { calendarView, i1, i2, i3 ->
-//            stringDateSelected = "${i1}-${i2+1}-${i3}"
-//
-//            databaseReference.child(stringDateSelected).get().addOnSuccessListener {
-//                if(it.exists())
-//                {
-//                    binding.logsEditTextNote.setText(it.child("noteData").value.toString())
-//                    var retrievedWorkoutList = it.child("workoutData").value as List<HashMap<String, Any?>>
-//                    val currentWorkoutList = mutableListOf<ItemWorkout>()
-//                    for(workout in retrievedWorkoutList) {
-//                        val item = ItemWorkout("", 0f)
-//                        item.setData(workout)
-//                        currentWorkoutList.add(item)
-//                    }
-//
-//                    adapter = WorkoutAdapter(currentWorkoutList, stringDateSelected, binding.logsEditTextNote.text.toString())
-//                    binding.logsRecyclerViewWorkoutList.adapter = adapter
-//                }
-//                else
-//                {
-//                    binding.logsEditTextNote.setText("")
-//                    adapter = WorkoutAdapter(defalutWorkoutList, stringDateSelected, binding.logsEditTextNote.text.toString())
-//                    binding.logsRecyclerViewWorkoutList.adapter = adapter
-//
-//                }
-//            }
-//        }
-//
+            else {
+                binding.logsEditTextNote.setText("")
+                adapter = WorkoutAdapter(workoutList, stringDateSelected, binding.logsEditTextNote.text.toString())
+                binding.logsRecyclerViewWorkoutList.adapter = adapter
+
+                Log.d(TAG, "retrieveData: Could not retrieve any data (WorkoutCalendar)")
+
+            }
+        }
+
+        binding.logsCalendarViewCalendar.setOnDateChangeListener { calendarView, i1, i2, i3 ->
+            stringDateSelected = "${i1}-${i2+1}-${i3}"
+
+            var tempCalendar = Calendar.getInstance()
+            tempCalendar.set(Calendar.YEAR, i1)
+            tempCalendar.set(Calendar.MONTH, i2+1)
+            tempCalendar.set(Calendar.DATE, i3)
+
+            dateSelected = tempCalendar.time
+
+            databaseCalendarReference.child(stringDateSelected).get().addOnSuccessListener {
+                if(it.exists())
+                {
+                    if(dateSelected.compareTo(todayDate) < 0) {
+                        retrieveData(it)
+                        workoutList = retrievedWorkoutData
+                        binding.logsEditTextNote.setText(retrievedNoteData)
+
+                        var dateWorkoutType = mutableSetOf<String>()
+
+                        for (i in workoutList) {
+                            dateWorkoutType.add(i.workoutType)
+                        }
+
+                        for (i in workoutTypeList) {
+                            if (!dateWorkoutType.contains(i)) {
+                                workoutList.add(ItemWorkout(i, 0f))
+                            }
+                        }
+                    }
+                }
+
+                adapter = WorkoutAdapter(workoutList, stringDateSelected, binding.logsEditTextNote.text.toString())
+                binding.logsRecyclerViewWorkoutList.adapter = adapter
+            }
+        }
+
 //        binding.logsImageButtonAddWorkout.setOnClickListener {
 //            openAddDialog()
 //        }
@@ -161,21 +175,13 @@ class LogsActivity : AppCompatActivity() {
     }
 
 
-
-
-
-    fun updateData()
-    {
-
-    }
-
     fun addData(loggingData: DataLog, workoutTypes: List<String>)
     {
         databaseCalendarReference.child(stringDateSelected).setValue(loggingData)
         databaseWorkoutTypeReference.setValue(workoutTypes)
     }
 
-    fun retrieveData()
+    fun retrieveData(it: DataSnapshot)
     {
         databaseCalendarReference.child(stringDateSelected).get().addOnSuccessListener {
                 if(it.exists())
