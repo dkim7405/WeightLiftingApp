@@ -1,6 +1,5 @@
 package com.example.app2.buttons
 
-import android.content.ClipData
 import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
@@ -77,13 +76,16 @@ class LogsActivity : AppCompatActivity() {
 
         databaseCalendarReference.child(stringDateSelected).get().addOnSuccessListener {
             if (it.exists()) {
-                retrieveData(it)
+                retrieveCalendarData(it)
 
                 workoutList = retrievedWorkoutData
                 binding.logsEditTextNote.setText(retrievedNoteData)
 
                 adapter = WorkoutAdapter(workoutList, stringDateSelected, binding.logsEditTextNote.text.toString())
                 binding.logsRecyclerViewWorkoutList.adapter = adapter
+
+                Log.d(TAG, "retrieveData: ${workoutTypeList}")
+                Log.d(TAG, "retrieveData: hello/ ${workoutList}")
             }
 
             else {
@@ -96,6 +98,11 @@ class LogsActivity : AppCompatActivity() {
             }
         }
 
+        binding.logsImageButtonBack.setOnClickListener {
+            val intentMain = Intent(this, MainActivity::class.java)
+            startActivity(intentMain)
+        }
+
         binding.logsCalendarViewCalendar.setOnDateChangeListener { calendarView, i1, i2, i3 ->
             stringDateSelected = "${i1}-${i2+1}-${i3}"
 
@@ -105,14 +112,21 @@ class LogsActivity : AppCompatActivity() {
             tempCalendar.set(Calendar.DATE, i3)
 
             dateSelected = tempCalendar.time
+            Log.d(TAG, "CalendarChange: hello2")
 
             databaseCalendarReference.child(stringDateSelected).get().addOnSuccessListener {
                 if(it.exists())
                 {
-                    if(dateSelected.compareTo(todayDate) < 0) {
-                        retrieveData(it)
-                        workoutList = retrievedWorkoutData
-                        binding.logsEditTextNote.setText(retrievedNoteData)
+
+                    Log.d(TAG, "CalendarChange: hello1")
+
+                    retrieveCalendarData(it)
+                    workoutList = retrievedWorkoutData
+                    binding.logsEditTextNote.setText(retrievedNoteData)
+
+                    if(todayDate < dateSelected)
+                    {
+                        Log.d(TAG, "CalendarChange: hello")
 
                         var dateWorkoutType = mutableSetOf<String>()
 
@@ -128,50 +142,48 @@ class LogsActivity : AppCompatActivity() {
                     }
                 }
 
+                else
+                {
+
+                }
+
                 adapter = WorkoutAdapter(workoutList, stringDateSelected, binding.logsEditTextNote.text.toString())
                 binding.logsRecyclerViewWorkoutList.adapter = adapter
             }
         }
 
-//        binding.logsImageButtonAddWorkout.setOnClickListener {
-//            openAddDialog()
-//        }
-//
-//        binding.logsImageButtonBack.setOnClickListener {
-//            val intentMain = Intent(this, MainActivity::class.java)
-//            startActivity(intentMain)
-//        }
-//
-//    }
-//
-//    fun openAddDialog()
-//    {
-//        val customLayout = layoutInflater.inflate(R.layout.layout_dialog, null)
-//        var addWorkoutWeight = customLayout.findViewById<EditText>(R.id.addWorkoutDialog_editText_weight)
-//        var addWorkoutName = customLayout.findViewById<EditText>(R.id.addWorkoutDialog_editText_workoutName)
-//        val dialog =  AlertDialog.Builder(this, R.style.AddDialogTheme)
-//            .setTitle("Add Workout")
-//            .setView(customLayout)
-//            .setPositiveButton("OK",  DialogInterface.OnClickListener() { dialogInterface, i ->
-//                    if(!(addWorkoutName.text.toString() == "" || addWorkoutWeight.text.toString() == "")) {
-//                        addDialogName = addWorkoutName.text.toString()
-//                        addDialogWeight = addWorkoutWeight.text.toString().toFloat()
-//                        adapter.dataSet.add(ItemWorkout(addDialogName, addDialogWeight))
-//                        adapter.notifyDataSetChanged()
-//                        addWorkoutData()
-//                    }
-//                })
-//            .setNegativeButton("Cancel", null)
-//            .create();
-//        dialog.show();
-//    }
-//
-//    fun addWorkoutData()
-//    {
-//        saveLogData = DataLog(adapter.dataSet, binding.logsEditTextNote.text.toString())
-//        databaseReference.child(stringDateSelected).setValue(saveLogData)
-//    }
+        binding.logsImageButtonAddWorkout.setOnClickListener {
+            openAddDialog()
+        }
 
+    }
+
+    fun openAddDialog()
+    {
+        val customLayout = layoutInflater.inflate(R.layout.layout_dialog, null)
+        var addWorkoutWeight = customLayout.findViewById<EditText>(R.id.addWorkoutDialog_editText_weight)
+        var addWorkoutName = customLayout.findViewById<EditText>(R.id.addWorkoutDialog_editText_workoutName)
+        val dialog =  AlertDialog.Builder(this, R.style.AddDialogTheme)
+            .setTitle("Add Workout")
+            .setView(customLayout)
+            .setPositiveButton("OK",  DialogInterface.OnClickListener() { dialogInterface, i ->
+                    if(!(addWorkoutName.text.toString() == "" || addWorkoutWeight.text.toString() == "")) {
+                        addDialogName = addWorkoutName.text.toString()
+                        addDialogWeight = addWorkoutWeight.text.toString().toFloat()
+                        adapter.dataSet.add(ItemWorkout(addDialogName, addDialogWeight))
+                        adapter.notifyDataSetChanged()
+
+                        if(!workoutTypeList.contains(addWorkoutName.text.toString()))
+                        {
+                            workoutTypeList.add(addWorkoutName.text.toString())
+                        }
+
+                        addData(DataLog(workoutList, binding.logsEditTextNote.text.toString()), workoutTypeList)
+                    }
+                })
+            .setNegativeButton("Cancel", null)
+            .create();
+        dialog.show();
     }
 
 
@@ -181,31 +193,14 @@ class LogsActivity : AppCompatActivity() {
         databaseWorkoutTypeReference.setValue(workoutTypes)
     }
 
-    fun retrieveData(it: DataSnapshot)
+    fun retrieveCalendarData(it: DataSnapshot)
     {
-        databaseCalendarReference.child(stringDateSelected).get().addOnSuccessListener {
-                if(it.exists())
-                {
-                    retrievedNoteData = it.child("noteData").value.toString()
-                    retrievedWorkoutData = convertWorkoutData(it.child("workoutData").value as List<HashMap<String, Any?>>)
 
-                    Log.d(TAG, "retrieveData: ${retrievedNoteData} (WorkoutCalendar)")
-                    Log.d(TAG, "retrieveData: ${retrievedWorkoutData} (WorkoutCalendar)")
+        retrievedNoteData = it.child("noteData").value.toString()
+        retrievedWorkoutData = convertWorkoutData(it.child("workoutData").value as List<HashMap<String, Any?>>)
 
-//                    adapter = WorkoutAdapter(currentWorkoutList, stringDateSelected, binding.logsEditTextNote.text.toString())
-//                    binding.logsRecyclerViewWorkoutList.adapter = adapter
-                }
-
-                else
-                {
-//                    binding.logsEditTextNote.setText("")
-//                    adapter = WorkoutAdapter(defalutWorkoutList, stringDateSelected, binding.logsEditTextNote.text.toString())
-//                    binding.logsRecyclerViewWorkoutList.adapter = adapter
-
-                    Log.d(TAG, "retrieveData: Could not retrieve any data (WorkoutCalendar)")
-
-                }
-        }
+        Log.d(TAG, "retrieveData: ${retrievedNoteData} (WorkoutCalendar)")
+        Log.d(TAG, "retrieveData: ${retrievedWorkoutData} (WorkoutCalendar)")
 
         databaseWorkoutTypeReference.get().addOnSuccessListener {
 
