@@ -1,10 +1,13 @@
 package com.example.app2.buttons
 
+import android.content.ClipData
 import android.content.DialogInterface
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.widget.EditText
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -13,7 +16,10 @@ import com.example.app2.R
 import com.example.app2.databinding.ActivityLogsBinding
 import com.google.firebase.database.*
 import java.text.SimpleDateFormat
+import java.time.Duration
+import java.time.temporal.ChronoUnit
 import java.util.*
+import kotlin.math.abs
 
 class LogsActivity : AppCompatActivity() {
 
@@ -109,7 +115,7 @@ class LogsActivity : AppCompatActivity() {
 
             var tempCalendar = Calendar.getInstance()
             tempCalendar.set(Calendar.YEAR, i1)
-            tempCalendar.set(Calendar.MONTH, i2+1)
+            tempCalendar.set(Calendar.MONTH, i2)
             tempCalendar.set(Calendar.DATE, i3)
             
             var dateList = mutableListOf<Date>()
@@ -127,7 +133,26 @@ class LogsActivity : AppCompatActivity() {
                                 dateList.add(calendarFormat.parse(it.key.toString())!!)
                             }
 
-                            callPreviousDate(dateList, dateSelected)
+                            var previousData = getClosestPreviousDate(dateList, dateSelected)
+                            Log.d(TAG, "onDataChange: ${previousData}")
+
+                            if(previousData == null)
+                            {
+                                Log.d(TAG, "onDataChange: Not occuring")
+                                workoutList = mutableListOf()
+
+                                for(i in workoutTypeList) {
+                                    workoutList.add(ItemWorkout(i, 0f))
+                                }
+
+                                adapter = WorkoutAdapter(workoutList, stringDateSelected, binding.logsEditTextNote.text.toString())
+                                binding.logsRecyclerViewWorkoutList.adapter = adapter
+                            }
+                            else
+                            {
+                                callPreviousDate(dateList, dateSelected)
+                                Log.d(TAG, "onDataChange: occuring")
+                            }
 
                         }
 
@@ -214,8 +239,6 @@ class LogsActivity : AppCompatActivity() {
             if(it.exists())
             {
 
-                Log.d(TAG, "CalendarChange: hello1")
-
                 retrieveCalendarData(it)
                 workoutList = retrievedWorkoutData
                 binding.logsEditTextNote.setText(retrievedNoteData)
@@ -247,20 +270,23 @@ class LogsActivity : AppCompatActivity() {
     }
 
     fun getClosestPreviousDate(dates: MutableList<Date>, selectedDate: Date): Date? {
-        var left = 0
-        var right = dates.size - 1
-        var closestDate: Date? = null
-        while (left <= right) {
-            val mid = left + (right - left) / 2
-            val currentDate = dates[mid]
-            if (currentDate <= selectedDate) {
-                closestDate = currentDate
-                left = mid + 1
-            } else {
-                right = mid - 1
+
+        var minDateCount = Int.MAX_VALUE;
+        var result : Date? = null;
+
+        dates.forEach {
+            Log.d(TAG, "it: $it")
+            Log.d(TAG, "selectedDate: $selectedDate")
+            Log.d(TAG, "getClosestPreviousDate: ${it.compareTo(selectedDate)}")
+            if(it.compareTo(selectedDate) < 0 && abs(it.compareTo(selectedDate)) < minDateCount)
+            {
+                
+                minDateCount = abs(it.compareTo(selectedDate))
+                result = it
             }
         }
-        return closestDate
+
+        return result;
     }
 
 
