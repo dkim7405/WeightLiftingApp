@@ -12,7 +12,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.database.FirebaseDatabase
 
-class WorkoutAdapter(val dataSet: MutableList<ItemWorkout>, dateSelected: String, noteData: String) :
+class WorkoutAdapter(var dataSet: MutableList<ItemWorkout>, var workoutTypeList: MutableList<String>, var dateSelected: String) :
     RecyclerView.Adapter<WorkoutAdapter.ViewHolder>() {
 
     val databaseCalendarReference = FirebaseDatabase.getInstance().getReference("Calendar")
@@ -55,9 +55,10 @@ class WorkoutAdapter(val dataSet: MutableList<ItemWorkout>, dateSelected: String
         viewHolder.workoutInput.setText("${dataSet[position].inputWorkout} lbs")
 
         viewHolder.deleteButton.setOnClickListener {
+            workoutTypeList.remove(dataSet[position].workoutType)
             dataSet.removeAt(position)
+            deleteWorkoutData()
             notifyDataSetChanged()
-            deleteWorkoutData(position)
         }
 
         viewHolder.workoutName.setOnClickListener{
@@ -98,18 +99,21 @@ class WorkoutAdapter(val dataSet: MutableList<ItemWorkout>, dateSelected: String
         var updateCalendarItem = hashMapOf<String, Any>()
         for(i in dataSet)
         {
-            updateCalendarItem.put(i.workoutType, i.inputWorkout)
+            updateCalendarItem[i.workoutType] = i.inputWorkout
         }
 
-        databaseCalendarReference.child(onSelectedDate).child("workoutData").updateChildren(updateCalendarItem)
-        //databaseWorkoutTypeReference.updateChildren()
-
+        databaseCalendarReference
+            .child(onSelectedDate)
+            .child("workoutData")
+            .updateChildren(updateCalendarItem)
     }
 
-    fun deleteWorkoutData(workoutPosition: Int)
+    fun deleteWorkoutData()
     {
-        databaseCalendarReference.child(onSelectedDate).child("workoutData").child(workoutPosition.toString()).removeValue()
+        databaseCalendarReference.child(onSelectedDate).child("workoutData").removeValue()
+        databaseWorkoutTypeReference.removeValue()
         databaseCalendarReference.child(onSelectedDate).child("workoutData").setValue(dataSet)
+        databaseWorkoutTypeReference.setValue(workoutTypeList)
 
     }
 }

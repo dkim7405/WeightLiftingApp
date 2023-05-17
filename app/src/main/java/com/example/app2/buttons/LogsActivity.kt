@@ -1,6 +1,7 @@
 package com.example.app2.buttons
 
 import android.content.ClipData
+import android.content.ClipData.Item
 import android.content.DialogInterface
 import android.content.Intent
 import android.os.Build
@@ -24,85 +25,116 @@ import kotlin.math.abs
 class LogsActivity : AppCompatActivity() {
 
     companion object{
-        val TAG = "Debugging"
+        val TAG = "Debugging"  // Tag for logging messages
     }
 
-    private lateinit var binding: ActivityLogsBinding
-    private lateinit var adapter : WorkoutAdapter
+    // Views
+    private lateinit var binding: ActivityLogsBinding  // View binding for activity_logs.xml
 
-    private lateinit var databaseCalendarReference: DatabaseReference
-    private lateinit var databaseWorkoutTypeReference: DatabaseReference
-    private lateinit var databaseGraphReference: DatabaseReference
+    // Adapter
+    private lateinit var adapter : WorkoutAdapter  // Adapter for recycler view
 
-    private lateinit var saveLogData: DataLog
-    private var retrievedNoteData : String = ""
-    private var retrievedWorkoutData : MutableList<ItemWorkout> = mutableListOf()
+    // Firebase References
+    private lateinit var databaseCalendarReference: DatabaseReference  // Reference to "Calendar" node in Firebase database
+    private lateinit var databaseWorkoutTypeReference: DatabaseReference  // Reference to "Workout Type" node in Firebase database
 
-    private lateinit var stringDateSelected: String
-    private lateinit var todayDate: Date
-    private lateinit var dateSelected: Date
-    private lateinit var calendarFormat : SimpleDateFormat
+    // Data Variables
+    private var retrievedNoteData : String = ""  // Variable to store note data retrieved from Firebase
+    private var retrievedWorkoutData : MutableList<ItemWorkout> = mutableListOf()  // Variable to store workout data retrieved from Firebase
 
+    private lateinit var stringDateSelected: String  // String representation of currently selected date
+    private lateinit var todayDate: Date  // Today's date
+    private lateinit var dateSelected: Date  // Date selected by user
+    private lateinit var calendarFormat : SimpleDateFormat  // Format for date string
 
-    private lateinit var workoutList: MutableList<ItemWorkout>
-    private lateinit var workoutTypeList: MutableList<String>
+    private lateinit var workoutList: MutableList<ItemWorkout>  // List of workout items
+    private lateinit var workoutTypeList: MutableList<String>  // List of workout types
 
-    private lateinit var addDialogName: String
-    private var addDialogWeight = 0f
+    // Dialog Variables
+    private lateinit var addDialogName: String  // Name of workout added using dialog
+    private var addDialogWeight = 0f  // Weight of workout added using dialog
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // View initialization
         binding = ActivityLogsBinding.inflate(layoutInflater)
         setContentView(binding.root)
         supportActionBar?.hide()
 
+        // Firebase initialization
         databaseCalendarReference = FirebaseDatabase.getInstance().getReference("Calendar")
-
         databaseWorkoutTypeReference = FirebaseDatabase.getInstance().getReference("Workout Type")
 
+        // Data initialization
         workoutTypeList = mutableListOf(
             "Bench",
             "Deadlift",
             "Squat"
         )
-
         workoutList = mutableListOf(
             ItemWorkout("Bench", 0.0f),
             ItemWorkout("Deadlift", 0.0f),
             ItemWorkout("Squat", 0.0f)
         )
 
+        //Date initialization
         todayDate = Calendar.getInstance().time
-
         calendarFormat = SimpleDateFormat("yyyy-M-d")
         stringDateSelected = calendarFormat.format(binding.logsCalendarViewCalendar.date)
 
+        // Recycler view initialization
         binding.logsRecyclerViewWorkoutList.layoutManager = LinearLayoutManager(this)
-        adapter = WorkoutAdapter(workoutList, stringDateSelected, binding.logsEditTextNote.text.toString())
+        adapter = WorkoutAdapter(workoutList, workoutTypeList, stringDateSelected)
         binding.logsRecyclerViewWorkoutList.adapter = adapter
 
+        // Retrieve workout type list from Firebase
+        databaseWorkoutTypeReference.get().addOnSuccessListener {
+            if(it.exists()) {
+                workoutTypeList = it.value as MutableList<String>
+                Log.d(TAG, "onCreate work: $workoutTypeList")
+            }
+        }
+
+        // Retrieve data from Firebase
         databaseCalendarReference.child(stringDateSelected).get().addOnSuccessListener {
-            if (it.exists()) {
-                retrieveCalendarData(it)
+            //COME BACK HERE
+            if(it.exists())
+            {
+                var dateWorkoutType = mutableSetOf<String>()
 
-                workoutList = retrievedWorkoutData
-                binding.logsEditTextNote.setText(retrievedNoteData)
+                for (i in workoutList) {
+                    dateWorkoutType.add(i.workoutType)
+                }
 
-                adapter = WorkoutAdapter(workoutList, stringDateSelected, binding.logsEditTextNote.text.toString())
-                binding.logsRecyclerViewWorkoutList.adapter = adapter
-
-                Log.d(TAG, "retrieveData: ${workoutTypeList}")
-                Log.d(TAG, "retrieveData: hello/ ${workoutList}")
+                for (i in workoutTypeList) {
+                    if (!dateWorkoutType.contains(i)) {
+                        workoutList.add(ItemWorkout(i, 0f))
+                    }
+                }
             }
+            else
+            {
+                databaseCalendarReference.addListenerForSingleValueEvent(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        var dateList = snapshot.children.mapNotNull { calendarFormat.parse(it.key.toString()) }
 
-            else {
-                binding.logsEditTextNote.setText("")
-                adapter = WorkoutAdapter(workoutList, stringDateSelected, binding.logsEditTextNote.text.toString())
-                binding.logsRecyclerViewWorkoutList.adapter = adapter
+                        val previousData = getClosestPreviousDate(dateList as MutableList<Date>, todayDate)
 
-                Log.d(TAG, "retrieveData: Could not retrieve any data (WorkoutCalendar)")
+                        if (previousData == null) {
+                            workoutList = workoutTypeList.map { ItemWorkout(it, 0f) }.toMutableList()
+                        } else {
+                            callPreviousDate(previousData)
+                        }
+                    }
 
+                    override fun onCancelled(error: DatabaseError) {
+                        Log.d(TAG, "onCancelled: $error")
+                    }
+                })
             }
+            adapter = WorkoutAdapter(workoutList, workoutTypeList, stringDateSelected)
+            binding.logsRecyclerViewWorkoutList.adapter = adapter
         }
 
         binding.logsImageButtonBack.setOnClickListener {
@@ -117,55 +149,30 @@ class LogsActivity : AppCompatActivity() {
             tempCalendar.set(Calendar.YEAR, i1)
             tempCalendar.set(Calendar.MONTH, i2)
             tempCalendar.set(Calendar.DATE, i3)
-            
-            var dateList = mutableListOf<Date>()
 
             dateSelected = tempCalendar.time
 
-            databaseCalendarReference.get().addOnSuccessListener {
-                if(it.exists())
-                {
-                    databaseCalendarReference.addListenerForSingleValueEvent(object: ValueEventListener
-                    {
-                        override fun onDataChange(snapshot: DataSnapshot) {
+            Log.d(TAG, "onCreate: $stringDateSelected")
 
-                            snapshot.children.forEach{
-                                dateList.add(calendarFormat.parse(it.key.toString())!!)
-                            }
+            databaseCalendarReference.addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    var dateList = snapshot.children.mapNotNull { calendarFormat.parse(it.key.toString()) }
 
-                            var previousData = getClosestPreviousDate(dateList, dateSelected)
-                            Log.d(TAG, "onDataChange: ${previousData}")
-
-                            if(previousData == null)
-                            {
-                                Log.d(TAG, "onDataChange: Not occuring")
-                                workoutList = mutableListOf()
-
-                                for(i in workoutTypeList) {
-                                    workoutList.add(ItemWorkout(i, 0f))
-                                }
-
-                                adapter = WorkoutAdapter(workoutList, stringDateSelected, binding.logsEditTextNote.text.toString())
-                                binding.logsRecyclerViewWorkoutList.adapter = adapter
-                            }
-                            else
-                            {
-                                callPreviousDate(dateList, dateSelected)
-                                Log.d(TAG, "onDataChange: occuring")
-                            }
-
-                        }
-
-                        override fun onCancelled(error: DatabaseError) {
-                            Log.d(TAG, "onCancelled: $error")
-                        }
-
-                    })
+                    val previousData = getClosestPreviousDate(dateList as MutableList<Date>, dateSelected)
+                    if (previousData == null) {
+                        workoutList = workoutTypeList.map { ItemWorkout(it, 0f) }.toMutableList()
+                        Log.d(TAG, "onDataChange, workoutList: $workoutTypeList")
+                        adapter = WorkoutAdapter(workoutList, workoutTypeList, stringDateSelected)
+                        binding.logsRecyclerViewWorkoutList.adapter = adapter
+                    } else {
+                        callPreviousDate(previousData)
+                    }
                 }
 
-            }
-
-
+                override fun onCancelled(error: DatabaseError) {
+                    Log.d(TAG, "onCancelled: $error")
+                }
+            })
         }
 
         binding.logsImageButtonAddWorkout.setOnClickListener {
@@ -233,38 +240,32 @@ class LogsActivity : AppCompatActivity() {
         return tempWorkoutList
     }
 
-    fun callPreviousDate(previousDateList: MutableList<Date>, selectedDate: Date)
+    fun callPreviousDate(prevDate: Date)
     {
-        databaseCalendarReference.child(stringDateSelected).get().addOnSuccessListener {
+        databaseCalendarReference.child(calendarFormat.format(prevDate)).get().addOnSuccessListener {
             if(it.exists())
             {
-
                 retrieveCalendarData(it)
                 workoutList = retrievedWorkoutData
                 binding.logsEditTextNote.setText(retrievedNoteData)
 
-                if(todayDate < dateSelected)
+                if(workoutTypeList.size > workoutList.size)
                 {
-
-                    var dateWorkoutType = mutableSetOf<String>()
-
-                    for (i in workoutList) {
-                        dateWorkoutType.add(i.workoutType)
+                    var tempList: MutableList<String> = mutableListOf()
+                    for(i in workoutList) {
+                        tempList.add(i.workoutType)
                     }
-
-                    for (i in workoutTypeList) {
-                        if (!dateWorkoutType.contains(i)) {
+                    for(i in workoutTypeList)
+                    {
+                        if(!tempList.contains(i))
+                        {
                             workoutList.add(ItemWorkout(i, 0f))
                         }
                     }
                 }
             }
-            else
-            {
 
-            }
-
-            adapter = WorkoutAdapter(workoutList, stringDateSelected, binding.logsEditTextNote.text.toString())
+            adapter = WorkoutAdapter(workoutList, workoutTypeList, stringDateSelected)
             binding.logsRecyclerViewWorkoutList.adapter = adapter
         }
     }
@@ -286,8 +287,7 @@ class LogsActivity : AppCompatActivity() {
             }
         }
 
-        return result;
+        return result
     }
-
 
 }
